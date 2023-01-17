@@ -1,0 +1,239 @@
+% Natural Deduction 
+% Author: Brigitte Pientka
+
+
+LF o : type =  % formulas
+  | ⊃ : o -> o -> o
+  | ⊤ : o
+  | ∧   : o → o → o
+  | ∨   : o → o → o
+;
+
+
+--infix ∧ 5 right.
+--infix ∨ 4 right.
+--infix ⊃ 3 right.
+
+
+% Natural deduction
+LF nd : o → type =
+  | ⊃I : (nd A → nd B)
+	 → nd (A ⊃ B)
+	       
+  | ⊃E : nd (A ⊃ B) -> nd A 			  
+	 -> nd B	       
+	       
+  | ∧I : nd A → nd B
+	 → nd  (A ∧ B)
+	       
+  | ∧El : nd (A ∧ B)
+	  → nd A
+
+  | ∧Er : nd (A ∧ B)
+	  → nd B
+
+  | ∨Il : nd A
+	  → nd (A ∨ B)
+	       
+  | ∨Ir : nd B
+	  → nd (A ∨ B)
+		    
+  | ∨E  :  nd (A ∨ B)
+        → (nd A → nd C)
+        → (nd B → nd C)        
+        → nd C
+
+  | ⊤I : nd ⊤
+;
+
+%Examples -- discussed in class
+rec p0 : [ ⊢ nd (A ∧ B ⊃ A)]  =
+[ ⊢ ⊃I (\u. ∧El u)] ;
+
+rec p1 : [ ⊢ nd ((A ∧ B) ⊃ (B ∧ A))] =
+[ ⊢ ⊃I \u. ∧I   (∧Er u) (∧El u)];
+
+rec p2 : [ ⊢ nd ((A ⊃ B) ∧ (B ⊃ C) ⊃  A ⊃ C)] =
+[ ⊢ ⊃I \u. (⊃I \v. ⊃E (∧Er u) (⊃E (∧El u)  v)) ];
+
+rec k :  [ ⊢ nd (A ⊃ (B ⊃ A))] =
+[ ⊢ ⊃I \a. ⊃I \b. a];
+
+rec l4A: [ ⊢ nd ((A ∧ (B ∨ C)) ⊃ (A ∧ B) ∨ (A ∧ C)) ] =
+[ ⊢ ⊃I \u. (∨E (∧Er u) (\b. ∨Il (∧I (∧El u) b)) (\c. ∨Ir (∧I (∧El u) c))) ]
+;
+
+rec l4B: [   ⊢ nd  ((A ∧ B) ∨ (A ∧ C) ⊃ (A ∧ (B ∨ C))) ] =
+	 [   ⊢ ⊃I \u. ∨E u (\ab. ∧I (∧El ab)  (∨Il (∧Er ab)))
+		           (\ac. ∧I (∧El ac)  (∨Ir (∧Er ac)))  ] ;
+
+rec l6A :  [ ⊢ nd ( A ∨ (B ∧ C) ⊃ (A ∨ B) ∧ (A ∨ C))] =
+  [ ⊢ ⊃I \u. ∧I (∨E u (\a. ∨Il a)  (\bc. ∨Ir (∧El bc))) 
+  	        (∨E u (\a. ∨Il a)  (\bc. ∨Ir (∧Er bc))) ]
+;
+
+% -------------------------------------------------------
+% HW 1 Problem Set
+
+rec b1 : [ ⊢ nd (A ∧ (B ∧ C)) ⊃ (A ∧ B)] = ?  ;
+
+rec b2 : [ ⊢ nd (A ⊃ B) ⊃ ((B ⊃ C) ⊃ A ⊃ C)] = ? ;
+	
+rec b3 : [ ⊢ nd (((A ∨ B) ⊃ C) ⊃ (A ⊃ C) ∧ (B ⊃ C))] = ? ;
+
+rec b4 : [ ⊢ nd ((A ⊃ C) ∧ (B ⊃ C)) ⊃ (A ∨ B) ⊃ C] = ? ;
+
+rec b5 : [ ⊢ nd (A ⊃ B) ∧ (A ∨ B) ⊃ (B ∨ C)] = ? ;
+
+rec b6 : [ ⊢  nd A ∨ (B ∧ C) ⊃ (A ∨ B) ∧ (A ∨ C)] = ? ; 
+
+
+rec b7 : [ ⊢  nd (A ∨ B) ∧ (A ∨ C) ⊃ A ∨ (B ∧ C)] = ? ;
+
+% -------------------------------------------------------
+%
+% Local Soundness
+%
+schema ctx = nd A ;
+
+inductive Reduce : (Γ : ctx) [Γ ⊢ nd A] → [Γ ⊢ nd A] → ctype =
+  %{
+
+    Da          Db
+  Γ ⊢ nd A    Γ ⊢ nd B
+------------------- ∧I
+ Γ |- nd (A ∧ B)
+ ------------- ∧El                          Da
+ Γ ⊢  nd A                     Reduces    Γ ⊢ nd A
+  }%
+  | ∧Redl : Reduce [Γ ⊢ ∧El (∧I Da Db) ] [Γ ⊢ Da]
+
+  %{
+
+    Da          Db
+  Γ ⊢ nd A    Γ ⊢ nd B
+------------------- ∧I
+ Γ |- nd (A ∧ B)
+ ------------- ∧El                          Db
+ Γ ⊢  nd A                     Reduces    Γ ⊢ nd b
+  }%
+	    
+  | ∧Redr : Reduce [Γ ⊢ ∧Er (∧I Da Db) ] [Γ ⊢ Db]
+
+%{	    
+        D
+Γ, u:nd A ⊢ nd B
+-------------------- ⊃I       E
+Γ ⊢ nd (A ⊃ B)             Γ ⊢ nd A
+---------------------------------------- ⊃E                 D'
+          Γ ⊢ nd B                             Reduces   Γ ⊢ nd B
+
+where D' is the derivation obtained by using the substitution lemma
+using D : Γ, u:nd A ⊢ nd B and E : Γ ⊢ nd A 
+(i.e. substituting the derivation E for the assumption u:nd A)
+
+
+}%	    
+  | ⊃Red  : Reduce [Γ ⊢ ⊃E (⊃I (\u.D)) E] [Γ ⊢ D[..,E]]
+  ;
+
+
+% -------------------------------------------------------  
+
+  % Alternative Natural deduction where we replace the elimination rules
+  % for conjunction with one alternative rule
+  %
+  % Γ |- A ∧ B true      Γ, a: A true, b: B true ⊢ C
+  % -------------------------------------------------------- ∧E
+  %    Γ ⊢ C true
+
+  % We describe this alternative natural deduction calculus with the judgment nd/alt below.
+  
+LF nd/alt : o -> type = 
+  | ⊃nI : (nd/alt A -> nd/alt B)
+	 -> nd/alt (A ⊃ B)
+  | ⊃nE : nd/alt (A ⊃ B) -> nd/alt A
+	 -> nd/alt B
+  | ∧nI : nd/alt A → nd/alt B → nd/alt  (A ∧ B)
+  | ∧nE : nd/alt (A ∧ B) → (nd/alt A → nd/alt B → nd/alt C) → nd/alt C
+  | ∨nIl : nd/alt A → nd/alt (A ∨ B)
+  | ∨nIr : nd/alt B → nd/alt (A ∨ B)
+  | ∨nE  :  nd/alt (A ∨ B)
+        → (nd/alt A → nd/alt C)
+        → (nd/alt B → nd/alt C)        
+        → nd/alt C
+  | ⊤nI : nd/alt ⊤
+;
+
+
+% Let's practice, to see how proofs change ... 
+rec b8 : [ ⊢ nd/alt (A ∧ B ⊃ A)]  =
+? ;
+
+rec b9 : [ ⊢ nd/alt ((A ∧ B) ⊃ (B ∧ A))] =
+ ? ;
+
+rec b10: [ ⊢ nd/alt ((A ∧ (B ∨ C)) ⊃ (A ∧ B) ∨ (A ∧ C)) ] =
+?
+;
+
+% Revisiting local soundness and completeness for nd/alt 
+
+% -------------------------------------------------------
+%
+% Local Soundness
+%
+schema nctx = nd/alt A ;
+
+inductive Reduce : (Γ : nctx) [Γ ⊢ nd/alt A] → [Γ ⊢ nd/alt A] → ctype =
+
+%{	    
+        D
+Γ, u:nd A ⊢ nd B
+-------------------- ⊃I       E
+Γ ⊢ nd (A ⊃ B)             Γ ⊢ nd A
+---------------------------------------- ⊃E                 D'
+          Γ ⊢ nd B                             Reduces   Γ ⊢ nd B
+
+where D' is the derivation obtained by using the substitution lemma
+using D : Γ, u:nd A ⊢ nd B and E : Γ ⊢ nd A 
+(i.e. substituting the derivation E for the assumption u:nd A)
+
+
+}%	    
+| ⊃nRed  : Reduce [Γ ⊢ ⊃nE (⊃nI (\u.D)) E] [Γ ⊢ D[..,E]]
+%{
+FILL IN THE LOCAL SOUNDNESS PROOF FOR CONJUNCTION 
+
+}%
+	   
+  ;
+
+inductive Expand : (Γ : ctx) [Γ ⊢ nd/alt A] → [Γ ⊢ nd/alt A] → ctype =
+%{
+
+      D
+Γ ⊢ nd/alt (A ⊃ B)
+
+expands to
+
+
+              D
+    Γ ⊢ nd/alt (A ⊃ B)
+-------------------------------- wk   ----------------------------a
+Γ,  a:nd/alt A ⊢ nd/alt (A ⊃ B)        Γ, a:nd/alt A ⊢ nd/alt A
+-----------------------------------------------------------------------⊃E
+Γ, a:nd/alt A ⊢ nd/alt B
+------------------------------------- ⊃nI
+Γ ⊢ nd/alt (A ⊃ B) 
+
+
+}%	   
+  | ⊃Exp : Expand [ Γ ⊢ D] [Γ ⊢ ⊃nI \a. ⊃nE D[..] a]	   
+
+%{
+FILL IN THE LOCAL SOUNDNESS PROOF FOR CONJUNCTION 
+
+}%
+	   
+  ;
